@@ -1,0 +1,90 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>A name that bursts into stickers · Miguel Clavel</title>
+<meta name="description" content="Click a heading and it bursts into little stickers that spin, arc and fade. One file, no libraries. By Miguel Clavel.">
+<style>
+  :root { --page: #F9F9FB; --ink: #1D1D21; --muted: #67676C; }
+  @media (prefers-color-scheme: dark) { :root { --page: #0F0F11; --ink: #F5F5F7; --muted: #A3A3A8; } }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; margin: 0; overflow: hidden; }
+  body { background: var(--page); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; display: grid; place-items: center; -webkit-font-smoothing: antialiased; }
+  h1 { margin: 0; font-size: clamp(48px, 11vw, 140px); font-weight: 750; letter-spacing: -0.045em; line-height: 1; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
+  h1:active { transform: scale(.98); }
+  .sticker { position: fixed; left: 0; top: 0; pointer-events: none; will-change: transform, opacity; }
+  .hint { position: fixed; left: 0; right: 0; bottom: 20px; text-align: center; font-size: 13px; color: var(--muted); }
+  .hint a { color: inherit; }
+  body.embed .hint { display: none; }
+</style>
+</head>
+<body>
+<h1 id="name" role="button" tabindex="0" aria-label="Miguel Clavel. Click for a burst of stickers">Miguel Clavel</h1>
+<p class="hint">Click the name (or press Enter on it). <a href="https://github.com/miguelclavel/sticker-burst">Code and prompt</a></p>
+<script>
+  // Swap in your own sticker images here, for example ['stickers/star.png', 'stickers/heart.png'].
+  // Left empty, each sticker is a simple coloured shape.
+  const IMAGES = [];
+  const COLORS = ['#FFD84D', '#FF4D6D', '#5BE85B', '#33D6FF', '#7A5AF8'];
+  const COUNT = 14;          // stickers per click
+  const GRAVITY = 1600;      // pixels per second, per second
+  const LIFE = 1000;         // milliseconds before a sticker is gone
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const live = [];
+  let req = null;
+
+  function sticker() {
+    const el = IMAGES.length ? Object.assign(document.createElement('img'), { src: IMAGES[Math.floor(Math.random() * IMAGES.length)], alt: '' }) : document.createElement('span');
+    const size = 18 + Math.random() * 26;
+    el.className = 'sticker';
+    el.setAttribute('aria-hidden', 'true');
+    Object.assign(el.style, { width: size + 'px', height: size + 'px' });
+    if (!IMAGES.length) {
+      const shape = Math.floor(Math.random() * 3);
+      Object.assign(el.style, { background: COLORS[Math.floor(Math.random() * COLORS.length)], borderRadius: shape === 0 ? '50%' : shape === 1 ? '6px' : '50% 50% 50% 4px' });
+    }
+    document.body.appendChild(el);
+    return el;
+  }
+
+  function burst(x, y) {
+    const n = reduce ? 4 : COUNT;
+    for (let i = 0; i < n; i++) {
+      // Each one gets its own direction, speed and spin, mostly upward so they arc.
+      const angle = -Math.PI / 2 + (Math.random() - 0.5) * Math.PI * 1.4;
+      const speed = reduce ? 0 : 380 + Math.random() * 520;
+      live.push({ el: sticker(), x, y, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, rot: Math.random() * 360, spin: (Math.random() - 0.5) * 720, born: performance.now() });
+    }
+    if (!req) { last = performance.now(); req = requestAnimationFrame(step); }
+  }
+
+  let last = 0;
+  function step(now) {
+    const dt = Math.min(0.05, (now - last) / 1000); last = now;
+    for (let i = live.length - 1; i >= 0; i--) {
+      const s = live[i], age = (now - s.born) / LIFE;
+      if (age >= 1) { s.el.remove(); live.splice(i, 1); continue; }
+      s.vy += GRAVITY * dt;               // the downward pull that makes the arc
+      s.x += s.vx * dt; s.y += s.vy * dt; s.rot += s.spin * dt;
+      s.el.style.transform = `translate(${s.x}px, ${s.y}px) translate(-50%, -50%) rotate(${s.rot}deg)`;
+      s.el.style.opacity = String(1 - age * age);
+    }
+    req = live.length ? requestAnimationFrame(step) : null;
+  }
+
+  const name = document.getElementById('name');
+  name.addEventListener('click', e => burst(e.clientX, e.clientY));
+  name.addEventListener('keydown', e => {
+    if (e.key !== 'Enter' && e.key !== ' ') return;
+    e.preventDefault();
+    const b = name.getBoundingClientRect();
+    burst(b.left + b.width / 2, b.top + b.height / 2);
+  });
+  const params = new URLSearchParams(location.search);
+  if (params.has('embed')) document.body.classList.add('embed');
+  // ?demo bursts once on its own, for the README picture.
+  if (params.has('demo')) setTimeout(() => { const b = name.getBoundingClientRect(); burst(b.left + b.width / 2, b.top + b.height / 2); }, 100);
+</script>
+</body>
+</html>
