@@ -12,7 +12,9 @@
   html, body { height: 100%; margin: 0; overflow: hidden; }
   body { background: var(--page); color: var(--ink); font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif; display: grid; place-items: center; -webkit-font-smoothing: antialiased; }
   h1 { margin: 0; font-size: clamp(48px, 11vw, 140px); font-weight: 750; letter-spacing: -0.045em; line-height: 1; cursor: pointer; user-select: none; -webkit-user-select: none; touch-action: manipulation; }
-  h1:active { transform: scale(.98); }
+  h1 button { font: inherit; letter-spacing: inherit; color: inherit; background: none; border: 0; padding: 0; cursor: pointer; }
+  h1 button:active { transform: scale(.98); }
+  h1 button:focus-visible { outline: 3px solid currentColor; outline-offset: 6px; border-radius: 8px; }
   .sticker { position: fixed; left: 0; top: 0; pointer-events: none; will-change: transform, opacity; }
   .hint { position: fixed; left: 0; right: 0; bottom: 20px; text-align: center; font-size: 13px; color: var(--muted); }
   .hint a { color: inherit; }
@@ -20,8 +22,8 @@
 </style>
 </head>
 <body>
-<h1 id="name" role="button" tabindex="0" aria-label="Miguel Clavel. Click for a burst of stickers">Miguel Clavel</h1>
-<p class="hint">Click the name (or press Enter on it). <a href="https://github.com/miguelclavel/sticker-burst">Code and prompt</a></p>
+<main><h1><button type="button" id="name" aria-label="Miguel Clavel. Click for a burst of stickers">Miguel Clavel</button></h1></main>
+<footer><p class="hint">Click the name (or press Enter on it). <a href="https://github.com/miguelclavel/sticker-burst">Code and prompt</a></p></footer>
 <script>
   // Swap in your own sticker images here, for example ['stickers/star.png', 'stickers/heart.png'].
   // Left empty, each sticker is a simple coloured shape.
@@ -74,12 +76,10 @@
   }
 
   const name = document.getElementById('name');
-  name.addEventListener('click', e => burst(e.clientX, e.clientY));
-  name.addEventListener('keydown', e => {
-    if (e.key !== 'Enter' && e.key !== ' ') return;
-    e.preventDefault();
-    const b = name.getBoundingClientRect();
-    burst(b.left + b.width / 2, b.top + b.height / 2);
+  name.addEventListener('click', e => {
+    // A keyboard press (Enter or Space) has no pointer position, so burst from the middle.
+    if (e.detail === 0) { const b = name.getBoundingClientRect(); return burst(b.left + b.width / 2, b.top + b.height / 2); }
+    burst(e.clientX, e.clientY);
   });
   const params = new URLSearchParams(location.search);
   if (params.has('embed')) document.body.classList.add('embed');
